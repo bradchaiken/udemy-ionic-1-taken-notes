@@ -1,80 +1,71 @@
 (function() {
 
-  var app = angular.module('starter', ['ionic']);
+  var app = angular.module('taking-notes', ['ionic', 'taking-notes.notestore']);
 
-  app.config(function ($stateProvider, $urlRouterProvider) {
+  app.config(function($stateProvider, $urlRouterProvider) {
 
-    // State #1 - initial / home state.
-    $stateProvider.state('List', {
+    $stateProvider.state('list', {
       url: '/list',
       templateUrl: 'templates/list.html'
     });
 
-    // State #2 - edit list state.
-    $stateProvider.state('Edit', {
-      url: '/edit/:noteId',
-      templateUrl: 'templates/edit.html'
+    $stateProvider.state('add', {
+      url: '/add',
+      templateUrl: 'templates/edit.html',
+      controller: 'AddCtrl'
     });
 
-    // If the url does not match anything defined before this, render '/list'.
+    $stateProvider.state('edit', {
+      url: '/edit/:noteId',
+      templateUrl: 'templates/edit.html',
+      controller: 'EditCtrl'
+    });
+
     $urlRouterProvider.otherwise('/list');
+  });
+
+  app.controller('ListCtrl', function($scope, NoteStore) {
+
+    $scope.notes = NoteStore.list();
+    $scope.remove = function(noteId) {
+      NoteStore.remove(noteId);
+    };
 
   });
 
-  var notes = [
-    {
-      id: '1',
-      title: "Title - 1",
-      description: "note-1 description..."
-    },
-    {
-      id: '2',
-      title: "Title - 2",
-      description: "note-2 description..."
-    }
-  ]
+  app.controller('AddCtrl', function($scope, $state, NoteStore) {
 
-  function updateNote(note) {
-    for( var i = 0; i < notes.length; i++) {
-      if (notes[i].id === note.id) {
-        notes[i] = note;
-        return;
-      }
-    }
-  }
-
-  function getNote(noteId) {
-    for( var i = 0; i < notes.length; i++) {
-      if (notes[i].id === noteId) {
-        return notes[i];
-      }
-    }
-    return undefined;
-  }
-
-  app.controller('ListCtrl', function ($scope) {
-    $scope.notes = notes;
-  });
-
-  app.controller('EditCtrl', function ($scope, $state) {
-    $scope.note = angular.copy(getNote($state.params.noteId));
+    $scope.note = {
+      id: new Date().getTime().toString(),
+      title: '',
+      description: ''
+    };
 
     $scope.save = function() {
-      updateNote($scope.note);
-      $state.go('List');
-    }
+      NoteStore.create($scope.note);
+      $state.go('list');
+    };
   });
 
-  app.run(function ($ionicPlatform) {
-    $ionicPlatform.ready(function () {
+  app.controller('EditCtrl', function($scope, $state, NoteStore) {
+
+    $scope.note = angular.copy(NoteStore.get($state.params.noteId));
+
+    $scope.save = function() {
+      NoteStore.update($scope.note);
+      $state.go('list');
+    };
+  });
+
+  app.run(function($ionicPlatform) {
+    $ionicPlatform.ready(function() {
       if (window.cordova && window.cordova.plugins.Keyboard) {
         cordova.plugins.Keyboard.hideKeyboardAccessoryBar(true);
-        cordova.plugins.Keyboard.disableScroll(true);
       }
       if (window.StatusBar) {
         StatusBar.styleDefault();
       }
     });
-  })
+  });
 
 }());

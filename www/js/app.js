@@ -6,7 +6,8 @@
 
     $stateProvider.state('list', {
       url: '/list',
-      templateUrl: 'templates/list.html'
+      templateUrl: 'templates/list.html',
+      cache: false
     });
 
     $stateProvider.state('add', {
@@ -26,13 +27,22 @@
 
   app.controller('ListCtrl', function($scope, NoteStore) {
     $scope.reordering = false;
-    $scope.notes = NoteStore.list();
+
+    function refreshNotes() {
+      NoteStore.list().then(function(notes) {
+        $scope.notes = notes;
+      });
+    }
+    refreshNotes();
+
     $scope.remove = function(noteId) {
-      NoteStore.remove(noteId);
+      NoteStore.remove(noteId).then(refreshNotes);
     };
+
     $scope.move = function(note, fromIndex, toIndex) {
       NoteStore.move(note, fromIndex, toIndex);
     };
+
     $scope.toggleReordering = function() {
       $scope.reordering = !$scope.reordering;
     };
@@ -40,21 +50,24 @@
 
   app.controller('AddCtrl', function($scope, $state, NoteStore) {
     $scope.note = {
-      id: new Date().getTime().toString(),
       title: '',
       description: ''
     };
     $scope.save = function() {
-      NoteStore.create($scope.note);
-      $state.go('list');
+      NoteStore.create($scope.note).then(function() {
+        $state.go('list');
+      });
     };
   });
 
   app.controller('EditCtrl', function($scope, $state, NoteStore) {
-    $scope.note = angular.copy(NoteStore.get($state.params.noteId));
+    NoteStore.get($state.params.noteId).then(function(note) {
+      $scope.note = note;
+    });
     $scope.save = function() {
-      NoteStore.update($scope.note);
-      $state.go('list');
+      NoteStore.update($scope.note).then(function() {
+        $state.go('list');
+      });
     };
   });
 

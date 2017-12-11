@@ -1,11 +1,17 @@
 (function() {
 
-  var app = angular.module('taking-notes', ['ionic', 'taking-notes.notestore']);
+  var app = angular.module('taking-notes', ['ionic', 'taking-notes.user', 'taking-notes.notestore']);
 
   app.config(function($stateProvider, $urlRouterProvider) {
 
+    $stateProvider.state('login', {
+      url: '/login',
+      templateUrl: 'templates/login.html',
+      controller: 'LoginCtrl'
+    });
+
     $stateProvider.state('list', {
-      url: '/list',
+      url: '/',
       templateUrl: 'templates/list.html',
       cache: false
     });
@@ -22,7 +28,25 @@
       controller: 'EditCtrl'
     });
 
-    $urlRouterProvider.otherwise('/list');
+    $urlRouterProvider.otherwise('/');
+  });
+
+  app.controller('LoginCtrl', function($scope, $state, $ionicHistory, User) {
+
+    $scope.credentials = {
+      user: '',
+      password: ''
+    };
+
+    $scope.login = function() {
+      User.login($scope.credentials)
+        .then(function() {
+          // Instructs ionic that the next view should be the root of the history, not login.
+          $ionicHistory.nextViewOptions({historyRoot: true});
+          $state.go('list');
+        });
+    };
+
   });
 
   app.controller('ListCtrl', function($scope, NoteStore) {
@@ -71,7 +95,15 @@
     };
   });
 
-  app.run(function($ionicPlatform) {
+  app.run(function($rootScope, $state, $ionicPlatform, User) {
+
+    $rootScope.$on('$stateChangeStart', function(event, toState) {
+      if (!User.isLoggedIn() && toState.name !== 'login') {
+        event.preventDefault();
+        $state.go('login');
+      }
+    });
+
     $ionicPlatform.ready(function() {
       if (window.cordova && window.cordova.plugins.Keyboard) {
         cordova.plugins.Keyboard.hideKeyboardAccessoryBar(true);
@@ -80,6 +112,7 @@
         StatusBar.styleDefault();
       }
     });
+
   });
 
 }());
